@@ -57,12 +57,22 @@ range_min = st.sidebar.number_input("Bucket size (minutes)", min_value=1, value=
 st.title("📊 Token Concentration & Wash Trading Dashboard")
 st.markdown("Nhập token address và nhấn `Analyze` — ứng dụng sẽ gọi API và hiển thị kết quả trực quan.")
 
-col1, col2 = st.columns([3, 1])
+col1, col2, col3 = st.columns([3, 1, 1])
+
+# Khởi tạo state cho input nếu chưa có
+if "token_input" not in st.session_state:
+    st.session_state.token_input = default_token
+
+col1, col2, col3 = st.columns([3, 1, 1])
 
 with col1:
-    token = st.text_input("Token address", value=default_token)
+    token = st.text_input("Token address", key="token_input")
+
 with col2:
     analyze_btn = st.button("🔍 Analyze", type="primary")
+
+with col3:
+    clear_btn = st.button("❌ Clear", on_click=lambda: st.session_state.update(token_input=""))
 
 # Optional quick examples
 st.markdown("**Example:** `0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c` (WBNB)")
