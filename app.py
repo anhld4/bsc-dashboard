@@ -46,7 +46,7 @@ def call_api(api_base, token, timeRange=None, range_min=None):
 # Sidebar: config
 # --------------------------
 st.sidebar.title("⚙️ Config")
-api_base = st.sidebar.text_input("API base URL", value="http://localhost:6969")
+api_base = st.sidebar.text_input("API base URL", value="http://51.79.251.8:6969")
 default_token = st.sidebar.text_input("Default token address (optional)", value="")
 time_range = st.sidebar.number_input("Time range (minutes)", min_value=1, value=360, step=10)
 range_min = st.sidebar.number_input("Bucket size (minutes)", min_value=1, value=10, step=1)
@@ -143,24 +143,12 @@ if analyze_btn:
             st.subheader("📉 Z-score across buckets")
             fig2 = px.line(vol_df, x="start", y="zscore", markers=True)
             # highlight threshold
-            fig2.add_hline(y=3, line_dash="dash", line_color="red", annotation_text="z=3", annotation_position="top left")
-            fig2.add_hline(y=-3, line_dash="dash", line_color="red", annotation_text="z=-3", annotation_position="bottom left")
+            max_z = data.get("maxZscore", 0)
+            min_z = data.get("minZscore", 0)
+            fig2.add_hline(y=max_z, line_dash="dash", line_color="red", annotation_text=f"z={max_z:.2f}", annotation_position="top left")
+            fig2.add_hline(y=min_z, line_dash="dash", line_color="red", annotation_text=f"z={min_z:.2f}", annotation_position="bottom left")
             st.plotly_chart(fig2, use_container_width=True)
 
-            # Show anomalous buckets
-            anomalies = vol_df[vol_df["zscore"].abs() > 3].copy()
-            if not anomalies.empty:
-                st.subheader("⚠️ Anomalous buckets (|z| > 3)")
-                anomalies["zscore"] = anomalies["zscore"].round(3)
-                anomalies["start"] = anomalies["start"].dt.strftime("%Y-%m-%d %H:%M:%S")
-                anomalies["end"] = anomalies["end"].dt.strftime("%Y-%m-%d %H:%M:%S")
-                st.dataframe(anomalies[["start","end","volume","zscore"]], use_container_width=True)
-            else:
-                st.info("No extreme anomalies (|z|>3) detected")
-
-            # Allow download CSV
-            csv = vol_df.to_csv(index=False)
-            st.download_button("⬇️ Download bucket CSV", csv, file_name=f"{token}_buckets.csv", mime="text/csv")
         else:
             st.info("No volume bucket data")
 
