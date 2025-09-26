@@ -162,6 +162,28 @@ if analyze_btn:
         else:
             st.info("No volume bucket data")
 
+        # ---------- Netflow buckets & chart ----------
+        netflow = data.get("netflowBuckets", [])
+        if netflow:
+            nf_df = pd.DataFrame(netflow)
+            nf_df["start"] = pd.to_datetime(nf_df["start"])
+            nf_df["end"] = pd.to_datetime(nf_df["end"])
+            nf_df = nf_df.sort_values("start")
+
+            st.subheader("🔄 Netflow (Buy - Sell per bucket)")
+            fig3 = px.bar(
+                nf_df,
+                x="start",
+                y="netflow",
+                labels={"start": "Start (UTC)", "netflow": "Netflow"},
+                color=nf_df["netflow"].apply(lambda x: "Positive" if x >= 0 else "Negative"),
+                color_discrete_map={"Positive": "green", "Negative": "red"}
+            )
+            st.plotly_chart(fig3, use_container_width=True)
+        else:
+            st.info("No netflow data")
+
+
         # ---------- Footer stats ----------
         st.markdown("---")
         st.write(f"minZscore: {data.get('minZscore')}, maxZscore: {data.get('maxZscore')}")
