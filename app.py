@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import plotly.express as px
 from datetime import datetime, timezone
+import numpy as np
 
 def human_format(num):
     for unit in ['', 'K', 'M', 'B', 'T']:
@@ -54,8 +55,8 @@ range_min = st.sidebar.number_input("Bucket size (minutes)", min_value=1, value=
 # --------------------------
 # Main UI
 # --------------------------
-st.title("📊 Token Concentration & Wash Trading Dashboard")
-st.markdown("Nhập token address và nhấn `Analyze` — ứng dụng sẽ gọi API và hiển thị kết quả trực quan.")
+st.title("📊 Token Concentration Dashboard")
+st.markdown("Nhập token address và nhấn `Analyze`.")
 
 col1, col2, col3 = st.columns([3, 1, 1])
 
@@ -102,10 +103,11 @@ if analyze_btn:
             level = risk or "Unknown"
             reasons = []
 
-        colA, colB, colC = st.columns(3)
+        colA, colB, colC, colD = st.columns(4)
         colA.metric("Total volume (before)", f"{human_format(data.get('totalVolumeBefore'))}")
         colB.metric("Total volume (after wash filter)", f"{human_format(data.get('totalVolumeAfter'))}")
-        colC.metric("Unique makers (after)", data.get("uniqueMakersAfter"))
+        colC.metric("Unique makers (before)", data.get("uniqueMakersBefore"))
+        colD.metric("Unique makers (after)", data.get("uniqueMakersAfter"))
 
         # Risk badge + reasons
         if level.lower() == "high":
@@ -150,7 +152,7 @@ if analyze_btn:
             fig = px.bar(vol_df, x="start", y="volume", hover_data=["zscore"], labels={"start":"Start (UTC)"})
             st.plotly_chart(fig, use_container_width=True)
 
-            st.subheader("📉 Z-score across buckets")
+            st.subheader("📉 Z-score of Total Volume")
             fig2 = px.line(vol_df, x="start", y="zscore", markers=True)
             # highlight threshold
             max_z = data.get("maxZscore", 0)
@@ -163,9 +165,9 @@ if analyze_btn:
             st.info("No volume bucket data")
 
         # ---------- Netflow buckets & chart ----------
-        netflow = data.get("netflowBuckets", [])
-        if netflow:
-            nf_df = pd.DataFrame(netflow)
+        netflowBuckets = data.get("netflowBuckets", [])
+        if netflowBuckets:
+            nf_df = pd.DataFrame(netflowBuckets)
             nf_df["start"] = pd.to_datetime(nf_df["start"])
             nf_df["end"] = pd.to_datetime(nf_df["end"])
             nf_df = nf_df.sort_values("start")
@@ -183,7 +185,60 @@ if analyze_btn:
         else:
             st.info("No netflow data")
 
+        # Lấy danh sách netflow từ buckets
+        netflows = [b["netflow"] for b in netflowBuckets]
+        # Đếm số bucket có netflow dương
+        count_positive = sum(1 for x in netflows if x > 0)
+
+        # Tổng số bucket
+        count_total = len(netflows)
+
+        # Tránh chia 0
+        if count_total > 0:
+            ratio = (count_positive / count_total) * 100
+        else:
+            ratio = 0
+
+        st.metric("Positive Netflow Buckets (%)", f"{ratio:.2f}%")
+
+        # ---------- Z-score Netflow ----------
+        if netflowBuckets:
+            nf_df = pd.DataFrame(netflowBuckets)
+            nf_df["start"] = pd.to_datetime(nf_df["start"])
+            nf_df = nf_df.sort_values("start")
+
+            st.subheader("📊 Z-score of Netflow")
+            fig4 = px.line(
+                nf_df,
+                x="start",
+                y="zscore",
+                markers=True,
+                labels={"start": "Start (UTC)", "zscore": "Z-score (Netflow)"}
+            )
+            # highlight min/max zscore
+            min_nf_z = data.get("minNetflowZ", 0)
+            max_nf_z = data.get("maxNetflowZ", 0)
+            if min_nf_z is not None:
+                fig4.add_hline(
+                    y=min_nf_z,
+                    line_dash="dash",
+                    line_color="red",
+                    annotation_text=f"min z={min_nf_z:.2f}",
+                    annotation_position="bottom left"
+                )
+            if max_nf_z is not None:
+                fig4.add_hline(
+                    y=max_nf_z,
+                    line_dash="dash",
+                    line_color="red",
+                    annotation_text=f"max z={max_nf_z:.2f}",
+                    annotation_position="top left"
+                )
+
+            st.plotly_chart(fig4, use_container_width=True)
+        else:
+            st.info("No netflow zscore data")
 
         # ---------- Footer stats ----------
         st.markdown("---")
-        st.write(f"minZscore: {data.get('minZscore')}, maxZscore: {data.get('maxZscore')}")
+        # st.write(f"minZscore: {data.get('minZscore')}, maxZscore: {data.get('maxZscore')}")
