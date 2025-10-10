@@ -12,7 +12,7 @@ def human_format(num):
         num /= 1000.0
     return f"{num:.1f}P"
 
-st.set_page_config(page_title="Token Concentration Dashboard", layout="wide")
+st.set_page_config(page_title="BSC Dashboard", layout="wide")
 
 # --------------------------
 # Helpers
@@ -49,8 +49,8 @@ def call_api(api_base, token, timeRange=None, range_min=None):
 st.sidebar.title("⚙️ Config")
 api_base = st.sidebar.text_input("API base URL", value="http://51.79.251.8:6969")
 default_token = st.sidebar.text_input("Default token address (optional)", value="")
-time_range = st.sidebar.number_input("Time range (minutes)", min_value=1, value=360, step=10)
-range_min = st.sidebar.number_input("Bucket size (minutes)", min_value=1, value=10, step=1)
+time_range = st.sidebar.number_input("Time range (minutes)", min_value=1, value=1440, step=10)
+range_min = st.sidebar.number_input("Bucket size (minutes)", min_value=1, value=60, step=1)
 
 # --------------------------
 # Main UI
