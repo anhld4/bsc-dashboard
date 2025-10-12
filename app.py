@@ -39,7 +39,7 @@ def call_api(api_base, token, timeRange=None, range_min=None):
     if range_min:
         params["range"] = int(range_min)
 
-    resp = requests.get(url, params=params, timeout=30)
+    resp = requests.get(url, params=params, timeout=90) # Thoi gian timeout = 90 giay
     resp.raise_for_status()
     return resp.json()
 
@@ -49,13 +49,13 @@ def call_api(api_base, token, timeRange=None, range_min=None):
 st.sidebar.title("⚙️ Config")
 api_base = st.sidebar.text_input("API base URL", value="http://51.79.251.8:6969")
 default_token = st.sidebar.text_input("Default token address (optional)", value="")
-time_range = st.sidebar.number_input("Time range (minutes)", min_value=1, value=1440, step=10)
-range_min = st.sidebar.number_input("Bucket size (minutes)", min_value=1, value=60, step=1)
+time_range = st.sidebar.number_input("Time range (minutes)", min_value=1, value=4320, step=10)
+range_min = st.sidebar.number_input("Bucket size (minutes)", min_value=1, value=90, step=1)
 
 # --------------------------
 # Main UI
 # --------------------------
-st.title("📊 Token Concentration Dashboard")
+st.title("📊 BSC Dashboard")
 st.markdown("Nhập token address và nhấn `Analyze`.")
 
 col1, col2, col3 = st.columns([3, 1, 1])
