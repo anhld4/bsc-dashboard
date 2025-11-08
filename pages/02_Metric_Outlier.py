@@ -98,35 +98,65 @@ if address:
             st.success("✅ No outliers detected for this address.")
 
         # --------------------------
-        # Biểu đồ line các feature + highlight outlier
+        # Chọn feature để phân tích
         # --------------------------
-        st.markdown("### 📈 Feature trends with outliers highlighted")
-        for col in numeric_cols:
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
+        st.markdown("---")
+        st.markdown("### 🎛️ Select feature to visualize")
+        selected_feature = st.selectbox("Choose a feature", numeric_cols)
+
+        if selected_feature:
+            st.markdown(f"### 📈 {selected_feature} trend (highlight outliers)")
+            fig_line = go.Figure()
+            fig_line.add_trace(go.Scatter(
                 x=df.index,
-                y=df[col],
+                y=df[selected_feature],
                 mode='lines+markers',
                 name='Normal',
                 marker=dict(color='blue'),
-                text=[f"{col}: {human_format(v)}" for v in df[col]],
+                text=[f"{selected_feature}: {human_format(v)}" for v in df[selected_feature]],
                 hoverinfo='text'
             ))
-            # highlight outliers
-            fig.add_trace(go.Scatter(
+            fig_line.add_trace(go.Scatter(
                 x=df[df['anomaly'] == 1].index,
-                y=df[df['anomaly'] == 1][col],
+                y=df[df['anomaly'] == 1][selected_feature],
                 mode='markers',
                 name='Outlier',
                 marker=dict(color='red', size=10, symbol='x'),
-                text=[f"OUTLIER {col}: {human_format(v)}" for v in df[df['anomaly'] == 1][col]],
+                text=[f"OUTLIER {selected_feature}: {human_format(v)}" for v in df[df['anomaly'] == 1][selected_feature]],
                 hoverinfo='text'
             ))
-            fig.update_layout(
-                title=f"{col} over time",
-                xaxis_title="Index (record order)",
-                yaxis_title=col,
+            fig_line.update_layout(
+                title=f"{selected_feature} over time",
+                xaxis_title="Record index",
+                yaxis_title=selected_feature,
                 height=400,
                 showlegend=True
             )
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig_line, use_container_width=True)
+
+            # --------------------------
+            # Histogram phân phối
+            # --------------------------
+            st.markdown(f"### 📊 Distribution of {selected_feature}")
+            fig_hist = go.Figure()
+            fig_hist.add_trace(go.Histogram(
+                x=df[selected_feature],
+                nbinsx=30,
+                name='All data',
+                marker_color='blue',
+                opacity=0.6
+            ))
+            fig_hist.add_trace(go.Histogram(
+                x=df[df['anomaly'] == 1][selected_feature],
+                nbinsx=30,
+                name='Outliers',
+                marker_color='red',
+                opacity=0.8
+            ))
+            fig_hist.update_layout(
+                barmode='overlay',
+                xaxis_title=selected_feature,
+                yaxis_title="Count",
+                height=400
+            )
+            st.plotly_chart(fig_hist, use_container_width=True)
