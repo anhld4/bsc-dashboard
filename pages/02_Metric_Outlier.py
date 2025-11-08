@@ -5,7 +5,6 @@ import numpy as np
 import requests
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 st.title("📊 Metric Outlier Detection with Explanation")
@@ -50,7 +49,7 @@ if address:
         scores = model.decision_function(X_scaled)
         threshold = np.percentile(scores, 5)
         df['anomaly'] = (scores <= threshold).astype(int)
-        df['score'] = scores  # lưu score để tham khảo
+        df['score'] = scores
 
         # -----------------------
         # Explain why outlier
@@ -73,27 +72,17 @@ if address:
         st.dataframe(df[['id', 'anomaly', 'score', 'reason'] + numeric_cols])
 
         # -----------------------
-        # Scatter plot
+        # Feature line plots with outlier highlight
         # -----------------------
-        st.subheader("Scatter plot with outliers highlighted")
-        fig, ax = plt.subplots()
-        ax.scatter(df['total_buy'], df['total_sell'], c=df['anomaly'], cmap='coolwarm', s=50)
-        ax.set_xlabel('total_buy')
-        ax.set_ylabel('total_sell')
-        # Annotate outliers
-        for i, row in df[df['anomaly']==1].iterrows():
-            ax.annotate(row['id'][:6], (row['total_buy'], row['total_sell']), fontsize=8, color='red')
-        st.pyplot(fig)
-
-        # -----------------------
-        # Boxplot for each numeric column
-        # -----------------------
-        st.subheader("Boxplot for each numeric column with outliers")
+        st.subheader("Feature Trends with Outliers Highlighted")
         for col in numeric_cols:
-            fig, ax = plt.subplots()
-            ax.boxplot(df[col], vert=True)
+            fig, ax = plt.subplots(figsize=(10,3))
+            ax.plot(df.index, df[col], label=col, marker='o')
             # Highlight outliers
-            outlier_values = df[df['anomaly']==1][col]
-            ax.scatter(np.where(df['anomaly']==1)[0]+1, outlier_values, color='red', label='Outlier')
+            outlier_idx = df.index[df['anomaly']==1]
+            ax.scatter(outlier_idx, df.loc[outlier_idx, col], color='red', label='Outlier', zorder=5)
             ax.set_title(col)
+            ax.set_xlabel("Record Index")
+            ax.set_ylabel(col)
+            ax.legend()
             st.pyplot(fig)
