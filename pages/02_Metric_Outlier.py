@@ -71,7 +71,7 @@ if address:
         st.subheader(f"⚠️ Found {df['anomaly'].sum()} outliers")
 
         # --------------------------
-        # Giải thích tại sao là outlier
+        # Giải thích tại sao là outlier (hiển thị created_date)
         # --------------------------
         outliers = df[df['anomaly'] == 1]
         if not outliers.empty:
@@ -86,10 +86,11 @@ if address:
                     if mean_val == 0:
                         continue
                     diff_ratio = abs(val - mean_val) / abs(mean_val)
-                    if diff_ratio > 1.0:  # lớn hơn 100% trung bình
+                    if diff_ratio > 1.0:  # lệch hơn 100% trung bình
                         diffs.append(f"{col} ({human_format(val)} vs avg {human_format(mean_val)})")
                 if diffs:
-                    explanations.append(f"- **ID {row['id']}** deviates strongly in: " + ", ".join(diffs))
+                    explanations.append(
+                        f"- {row['created_date']}** deviates strongly in: " + ", ".join(diffs))
             if explanations:
                 st.markdown("\n".join(explanations))
             else:
