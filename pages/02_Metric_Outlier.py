@@ -38,6 +38,7 @@ clear = col2.button("🧹 Clear")
 # Nếu nhấn Clear thì reset
 if clear:
     st.session_state.clear()
+    st.session_state.update(address="")
 
 # Chỉ chạy khi nhấn Submit
 if submit and address:
