@@ -28,15 +28,18 @@ def human_format(num):
 st.title("📊 Metric Outlier Detection")
 
 # Nhập địa chỉ
-address = st.text_input("Enter address for Metric Outlier Detection:")
+address = st.text_input("Enter address for Metric Outlier Detection:", key="address_input")
 
 # Hai nút: Submit và Clear
 col1, col2 = st.columns(2)
 submit = col1.button("🚀 Submit")
-clear = col2.button("🧹 Clear", on_click=lambda: st.session_state.update(address=""))
+clear = col2.button("🧹 Clear")
 
 # Nếu nhấn Clear thì reset
 if clear:
+    # Xóa text trong input
+    if "address_input" in st.session_state:
+        st.session_state["address_input"] = ""
     st.session_state.clear()
 
 # Chỉ chạy khi nhấn Submit
