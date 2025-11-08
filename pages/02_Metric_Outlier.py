@@ -84,14 +84,14 @@ if submit and address:
         # --------------------------
         # Giải thích tại sao là outlier (hiển thị created_date)
         # --------------------------
+        # Chuyển created_date về datetime trước khi lặp
+        df['created_date'] = pd.to_datetime(df['created_date'])
+
         outliers = df[df['anomaly'] == 1]
         if not outliers.empty:
             st.markdown("### 💡 Why these points are outliers:")
             feature_means = df[numeric_cols].mean()
             explanations = []
-
-            # Chuyển created_date về datetime
-            df['created_date'] = pd.to_datetime(df['created_date'])
 
             for idx, row in outliers.iterrows():
                 diffs = []
@@ -101,12 +101,13 @@ if submit and address:
                     if mean_val == 0:
                         continue
                     diff_ratio = abs(val - mean_val) / abs(mean_val)
-                    if diff_ratio > 1.0:  # lệch hơn 100% trung bình
+                    if diff_ratio > 1.0:
                         diffs.append(f"{col} ({human_format(val)} vs avg {human_format(mean_val)})")
                 if diffs:
-                    # Format created_date về 2025-11-04T00:08
-                    created_str = row['created_date'].strftime("%Y-%m-%dT%H:%M")
-                    explanations.append(f"- **{created_str}** deviates strongly in: " + ", ".join(diffs))
+                    # Bây giờ row['created_date'] đã là datetime
+                    created_str = pd.to_datetime(row['created_date']).strftime("%Y-%m-%dT%H:%M")
+                    explanations.append(f"- **Created at {created_str}** deviates strongly in: " + ", ".join(diffs))
+
             if explanations:
                 st.markdown("\n".join(explanations))
             else:
