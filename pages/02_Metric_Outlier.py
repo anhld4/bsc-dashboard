@@ -1,4 +1,3 @@
-# pages/02_Metric_Outlier.py
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,8 +5,6 @@ import requests
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
 import plotly.graph_objects as go
-import seaborn as sns
-import matplotlib.pyplot as plt
 
 # --------------------------
 # Helper: Format số đẹp
@@ -25,12 +22,26 @@ def human_format(num):
         num /= 1000.0
     return f"{num:.1f}P"
 
-
+# --------------------------
+# Streamlit UI
+# --------------------------
 st.title("📊 Metric Outlier Detection")
 
+# Nhập địa chỉ
 address = st.text_input("Enter address for Metric Outlier Detection:")
 
-if address:
+# Hai nút: Submit và Clear
+col1, col2 = st.columns(2)
+submit = col1.button("🚀 Submit")
+clear = col2.button("🧹 Clear")
+
+# Nếu nhấn Clear thì reset
+if clear:
+    st.session_state.clear()
+    st.experimental_rerun()
+
+# Chỉ chạy khi nhấn Submit
+if submit and address:
     try:
         response = requests.get(f"http://51.79.251.8:6969/metrics/{address}")
         data = response.json()
@@ -78,6 +89,10 @@ if address:
             st.markdown("### 💡 Why these points are outliers:")
             feature_means = df[numeric_cols].mean()
             explanations = []
+
+            # Chuyển created_date về datetime
+            df['created_date'] = pd.to_datetime(df['created_date'])
+
             for idx, row in outliers.iterrows():
                 diffs = []
                 for col in numeric_cols:
@@ -89,8 +104,9 @@ if address:
                     if diff_ratio > 1.0:  # lệch hơn 100% trung bình
                         diffs.append(f"{col} ({human_format(val)} vs avg {human_format(mean_val)})")
                 if diffs:
-                    explanations.append(
-                        f"- {row['created_date']}** deviates strongly in: " + ", ".join(diffs))
+                    # Format created_date về 2025-11-04T00:08
+                    created_str = row['created_date'].strftime("%Y-%m-%dT%H:%M")
+                    explanations.append(f"- **{created_str}** deviates strongly in: " + ", ".join(diffs))
             if explanations:
                 st.markdown("\n".join(explanations))
             else:
@@ -113,7 +129,6 @@ if address:
                 text=[f"{col}: {human_format(v)}" for v in df[col]],
                 hoverinfo='text'
             ))
-            # highlight outliers
             fig.add_trace(go.Scatter(
                 x=df[df['anomaly'] == 1].index,
                 y=df[df['anomaly'] == 1][col],
@@ -131,3 +146,7 @@ if address:
                 showlegend=True
             )
             st.plotly_chart(fig, use_container_width=True)
+
+# Khi chưa nhấn submit
+elif not submit and not clear:
+    st.info("👆 Enter an address and press **Submit** to start analysis.")
