@@ -5,9 +5,28 @@ import numpy as np
 import requests
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
+import plotly.graph_objects as go
+import seaborn as sns
 import matplotlib.pyplot as plt
 
-st.title("📊 Metric Outlier Detection with Explanation")
+# --------------------------
+# Helper: Format số đẹp
+# --------------------------
+def human_format(num):
+    if num is None or pd.isna(num):
+        return "-"
+    try:
+        num = float(num)
+    except ValueError:
+        return str(num)
+    for unit in ['', 'K', 'M', 'B', 'T']:
+        if abs(num) < 1000.0:
+            return f"{num:3.1f}{unit}"
+        num /= 1000.0
+    return f"{num:.1f}P"
+
+
+st.title("📊 Metric Outlier Detection")
 
 address = st.text_input("Enter address for Metric Outlier Detection:")
 
@@ -26,7 +45,9 @@ if address:
         st.subheader("Raw Data Preview")
         st.dataframe(df.head())
 
-        # Convert numeric columns
+        # --------------------------
+        # Chuẩn bị dữ liệu
+        # --------------------------
         numeric_cols = [
             'total_maker', 'total_volume', 'maker_buy', 'total_buy',
             'maker_sell', 'total_sell', 'total_supply', 'total_transfer',
@@ -36,9 +57,6 @@ if address:
         for col in numeric_cols:
             df[col] = df[col].astype(float)
 
-        # -----------------------
-        # Isolation Forest
-        # -----------------------
         X = df[numeric_cols]
         scaler = StandardScaler()
         X_scaled = scaler.fit_transform(X)
@@ -49,40 +67,66 @@ if address:
         scores = model.decision_function(X_scaled)
         threshold = np.percentile(scores, 5)
         df['anomaly'] = (scores <= threshold).astype(int)
-        df['score'] = scores
 
-        # -----------------------
-        # Explain why outlier
-        # -----------------------
-        mean = X.mean(axis=0)
-        std = X.std(axis=0)
+        st.subheader(f"⚠️ Found {df['anomaly'].sum()} outliers")
 
-        def explain_outlier(row):
-            reasons = []
-            for i, col in enumerate(numeric_cols):
-                if row[col] > mean[i] + 2*std[i]:
-                    reasons.append(f"{col} high ({row[col]:.2f})")
-                elif row[col] < mean[i] - 2*std[i]:
-                    reasons.append(f"{col} low ({row[col]:.2f})")
-            return ", ".join(reasons) if reasons else "N/A"
+        # --------------------------
+        # Giải thích tại sao là outlier
+        # --------------------------
+        outliers = df[df['anomaly'] == 1]
+        if not outliers.empty:
+            st.markdown("### 💡 Why these points are outliers:")
+            feature_means = df[numeric_cols].mean()
+            explanations = []
+            for idx, row in outliers.iterrows():
+                diffs = []
+                for col in numeric_cols:
+                    mean_val = feature_means[col]
+                    val = row[col]
+                    if mean_val == 0:
+                        continue
+                    diff_ratio = abs(val - mean_val) / abs(mean_val)
+                    if diff_ratio > 1.0:  # lớn hơn 100% trung bình
+                        diffs.append(f"{col} ({human_format(val)} vs avg {human_format(mean_val)})")
+                if diffs:
+                    explanations.append(f"- **ID {row['id']}** deviates strongly in: " + ", ".join(diffs))
+            if explanations:
+                st.markdown("\n".join(explanations))
+            else:
+                st.info("No strong feature deviations detected among outliers.")
+        else:
+            st.success("✅ No outliers detected for this address.")
 
-        df['reason'] = df.apply(lambda row: explain_outlier(row) if row['anomaly']==1 else "", axis=1)
-
-        st.subheader(f"Found {df['anomaly'].sum()} outliers")
-        st.dataframe(df[['id', 'anomaly', 'score', 'reason'] + numeric_cols])
-
-        # -----------------------
-        # Feature line plots with outlier highlight
-        # -----------------------
-        st.subheader("Feature Trends with Outliers Highlighted")
+        # --------------------------
+        # Biểu đồ line các feature + highlight outlier
+        # --------------------------
+        st.markdown("### 📈 Feature trends with outliers highlighted")
         for col in numeric_cols:
-            fig, ax = plt.subplots(figsize=(10,3))
-            ax.plot(df.index, df[col], label=col, marker='o')
-            # Highlight outliers
-            outlier_idx = df.index[df['anomaly']==1]
-            ax.scatter(outlier_idx, df.loc[outlier_idx, col], color='red', label='Outlier', zorder=5)
-            ax.set_title(col)
-            ax.set_xlabel("Record Index")
-            ax.set_ylabel(col)
-            ax.legend()
-            st.pyplot(fig)
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=df.index,
+                y=df[col],
+                mode='lines+markers',
+                name='Normal',
+                marker=dict(color='blue'),
+                text=[f"{col}: {human_format(v)}" for v in df[col]],
+                hoverinfo='text'
+            ))
+            # highlight outliers
+            fig.add_trace(go.Scatter(
+                x=df[df['anomaly'] == 1].index,
+                y=df[df['anomaly'] == 1][col],
+                mode='markers',
+                name='Outlier',
+                marker=dict(color='red', size=10, symbol='x'),
+                text=[f"OUTLIER {col}: {human_format(v)}" for v in df[df['anomaly'] == 1][col]],
+                hoverinfo='text'
+            ))
+            fig.update_layout(
+                title=f"{col} over time",
+                xaxis_title="Index (record order)",
+                yaxis_title=col,
+                height=400,
+                showlegend=True
+            )
+            st.plotly_chart(fig, use_container_width=True)
