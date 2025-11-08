@@ -14,7 +14,7 @@ address = st.text_input("Enter address for Metric Outlier Detection:")
 
 if address:
     try:
-        response = requests.get(f"http://localhost:3000/metrics/{address}")
+        response = requests.get(f"http://51.79.251.8:6969/metrics/{address}")
         data = response.json()
     except Exception as e:
         st.error(f"API call failed: {e}")
