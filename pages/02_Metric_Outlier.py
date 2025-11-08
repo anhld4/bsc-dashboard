@@ -33,12 +33,11 @@ address = st.text_input("Enter address for Metric Outlier Detection:")
 # Hai nút: Submit và Clear
 col1, col2 = st.columns(2)
 submit = col1.button("🚀 Submit")
-clear = col2.button("🧹 Clear")
+clear = col2.button("🧹 Clear", on_click=lambda: st.session_state.update(address=""))
 
 # Nếu nhấn Clear thì reset
 if clear:
     st.session_state.clear()
-    st.session_state.update(address="")
 
 # Chỉ chạy khi nhấn Submit
 if submit and address:
@@ -106,7 +105,7 @@ if submit and address:
                 if diffs:
                     # Bây giờ row['created_date'] đã là datetime
                     created_str = pd.to_datetime(row['created_date']).strftime("%Y-%m-%dT%H:%M")
-                    explanations.append(f"- **Created at {created_str}** deviates strongly in: " + ", ".join(diffs))
+                    explanations.append(f"- **{created_str}** : " + ", ".join(diffs))
 
             if explanations:
                 st.markdown("\n".join(explanations))
