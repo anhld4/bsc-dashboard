@@ -62,8 +62,7 @@ if submit and address:
         numeric_cols = [
         'total_maker', 'total_volume', 'maker_buy', 'total_buy',
         'maker_sell', 'total_sell', 'total_supply', 'total_transfer',
-        'total_transfer_amount', 'total_mint', 'total_mint_amount',
-        'total_burn', 'total_burn_amount'
+        'total_transfer_amount'
         ]
 
         # Chuyển sang float
@@ -113,16 +112,11 @@ if submit and address:
                 z_threshold = 2.5  # ngưỡng |Z| > 2.5 coi là bất thường
                 for col in numeric_cols:
                     z_col = f"{col}_zscore"
-                    z_val = df[z_col]
+                    z_val = row[z_col]
                     if abs(z_val) > z_threshold:
-                        val = df[col]
-                        diffs.append(f"{col} (Z={z_val:.2f}, value={human_format(val)})")
+                        diffs.append(f"{col} (Z={z_val:.2f})")
 
                 if diffs:
-                    # Sắp xếp theo độ lệch Z-score giảm dần
-                    reason = ", ".join(
-                        sorted(diffs, key=lambda x: abs(float(x.split('=')[1].split(',')[0])), reverse=True)
-                    )
                     created_str = pd.to_datetime(row['created_date']).strftime("%Y-%m-%dT%H:%M")
                     explanations.append(f"- **{created_str}** : " + ", ".join(diffs))
 
