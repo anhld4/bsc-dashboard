@@ -59,26 +59,38 @@ if submit and address:
         st.subheader("Raw Data Preview")
         st.dataframe(df.head())
 
-        # --------------------------
-        # Chuẩn bị dữ liệu
-        # --------------------------
         numeric_cols = [
-            'total_maker', 'total_volume', 'maker_buy', 'total_buy',
-            'maker_sell', 'total_sell', 'total_supply', 'total_transfer',
-            'total_transfer_amount', 'total_mint', 'total_mint_amount',
-            'total_burn', 'total_burn_amount'
+        'total_maker', 'total_volume', 'maker_buy', 'total_buy',
+        'maker_sell', 'total_sell', 'total_supply', 'total_transfer',
+        'total_transfer_amount', 'total_mint', 'total_mint_amount',
+        'total_burn', 'total_burn_amount'
         ]
+
+        # Chuyển sang float
         for col in numeric_cols:
             df[col] = df[col].astype(float)
 
-        X = df[numeric_cols]
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
+        # --------------------------
+        # 🧮 Tính Z-score cho từng feature
+        # --------------------------
+        for col in numeric_cols:
+            mean_val = df[col].mean()
+            std_val = df[col].std(ddof=0)
+            if std_val == 0:
+                df[f"{col}_zscore"] = 0
+            else:
+                df[f"{col}_zscore"] = (df[col] - mean_val) / std_val
+
+        # --------------------------
+        # 🤖 Isolation Forest dùng Z-score
+        # --------------------------
+        zscore_cols = [f"{col}_zscore" for col in numeric_cols]
+        X = df[zscore_cols].fillna(0)
 
         model = IsolationForest(n_estimators=100, contamination='auto', random_state=42)
-        model.fit(X_scaled)
+        model.fit(X)
 
-        scores = model.decision_function(X_scaled)
+        scores = model.decision_function(X)
         threshold = np.percentile(scores, 5)
         df['anomaly'] = (scores <= threshold).astype(int)
 
