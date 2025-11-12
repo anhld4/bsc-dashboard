@@ -110,16 +110,19 @@ if submit and address:
 
             for idx, row in outliers.iterrows():
                 diffs = []
+                z_threshold = 2.5  # ngưỡng |Z| > 2.5 coi là bất thường
                 for col in numeric_cols:
-                    mean_val = feature_means[col]
-                    val = row[col]
-                    if mean_val == 0:
-                        continue
-                    diff_ratio = abs(val - mean_val) / abs(mean_val)
-                    if diff_ratio > 1.0:
-                        diffs.append(f"{col} ({human_format(val)} vs avg {human_format(mean_val)})")
+                    z_col = f"{col}_zscore"
+                    z_val = df[z_col]
+                    if abs(z_val) > z_threshold:
+                        val = df[col]
+                        diffs.append(f"{col} (Z={z_val:.2f}, value={human_format(val)})")
+
                 if diffs:
-                    # Bây giờ row['created_date'] đã là datetime
+                    # Sắp xếp theo độ lệch Z-score giảm dần
+                    reason = ", ".join(
+                        sorted(diffs, key=lambda x: abs(float(x.split('=')[1].split(',')[0])), reverse=True)
+                    )
                     created_str = pd.to_datetime(row['created_date']).strftime("%Y-%m-%dT%H:%M")
                     explanations.append(f"- **{created_str}** : " + ", ".join(diffs))
 
