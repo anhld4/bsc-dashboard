@@ -90,7 +90,7 @@ if submit and address:
         model.fit(X)
 
         scores = model.decision_function(X)
-        threshold = np.percentile(scores, 5)
+        threshold = np.percentile(scores, 1)
         df['anomaly'] = (scores <= threshold).astype(int)
 
         st.subheader(f"⚠️ Found {df['anomaly'].sum()} outliers")
